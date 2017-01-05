@@ -21,10 +21,10 @@ define Build/mktplinkfw
 		$(if $(findstring sysupgrade,$(word 1,$(1))),-s) && mv $@.new $@ || rm -f $@
 endef
 
-# mktplinkfw-combined
+# mktplinkfw-initramfs <optional extra arguments to mktplinkfw binary>
 #
 # -c combined image
-define Build/mktplinkfw-combined
+define Build/mktplinkfw-initramfs
 	$(STAGING_DIR_HOST)/bin/mktplinkfw \
 		-H $(TPLINK_HWID) -W $(TPLINK_HWREV) -F $(TPLINK_FLASHLAYOUT) -N OpenWrt -V $(REVISION) $(1) \
 		-m $(TPLINK_HEADER_VERSION) \
@@ -35,22 +35,12 @@ define Build/mktplinkfw-combined
 	@mv $@.new $@
 endef
 
-# add RE450 and similar header to the kernel image
-define Build/mktplinkfw-kernel
-	$(STAGING_DIR_HOST)/bin/mktplinkfw-kernel \
-		-H $(TPLINK_HWID) -N OpenWrt -V $(REVISION) \
-		-L $(KERNEL_LOADADDR) -E $(KERNEL_LOADADDR) \
-		-k $@ \
-		-o $@.new
-	@mv $@.new $@
-endef
-
 define Device/tplink
   TPLINK_HWREV := 0x1
   TPLINK_HEADER_VERSION := 1
   LOADER_TYPE := gz
   KERNEL := kernel-bin | patch-cmdline | lzma
-  KERNEL_INITRAMFS := kernel-bin | patch-cmdline | lzma | mktplinkfw-combined
+  KERNEL_INITRAMFS := kernel-bin | patch-cmdline | lzma | mktplinkfw-initramfs
   IMAGES := sysupgrade.bin factory.bin
   IMAGE/sysupgrade.bin := append-rootfs | mktplinkfw sysupgrade
   IMAGE/factory.bin := append-rootfs | mktplinkfw factory
@@ -62,7 +52,7 @@ $(Device/tplink)
   COMPILE := loader-$(1).gz
   COMPILE/loader-$(1).gz := loader-okli-compile
   KERNEL := copy-file $(KDIR)/vmlinux.bin.lzma | uImage lzma -M 0x4f4b4c49 | loader-okli $(1)
-  KERNEL_INITRAMFS := copy-file $(KDIR)/vmlinux-initramfs.bin.lzma | loader-kernel-cmdline | mktplinkfw-combined
+  KERNEL_INITRAMFS := copy-file $(KDIR)/vmlinux-initramfs.bin.lzma | loader-kernel-cmdline | mktplinkfw-initramfs
 endef
 
 define Device/tplink-4m
@@ -118,22 +108,6 @@ $(Device/cpe510-520)
   TPLINK_BOARD_NAME := CPE210
 endef
 TARGET_DEVICES += cpe210-220 cpe510-520
-
-define Device/re450
-  DEVICE_TITLE := TP-LINK RE450
-  DEVICE_PACKAGES := kmod-ath10k ath10k-firmware-qca988x
-  MTDPARTS := spi0.0:128k(u-boot)ro,1344k(kernel),4672k(rootfs),64k(pation-table)ro,64k(product-info)ro,1856k(config)ro,64k(art)ro,6016k@0x20000(firmware)
-  IMAGE_SIZE := 7936k
-  BOARDNAME := RE450
-  TPLINK_BOARD_NAME := RE450
-  DEVICE_PROFILE := RE450
-  LOADER_TYPE := elf
-  KERNEL := kernel-bin | patch-cmdline | lzma | mktplinkfw-kernel
-  IMAGES := sysupgrade.bin factory.bin
-  IMAGE/sysupgrade.bin := append-rootfs | tplink-safeloader sysupgrade
-  IMAGE/factory.bin := append-rootfs | tplink-safeloader factory
-endef
-TARGET_DEVICES += re450
 
 define Device/eap120
   DEVICE_TITLE := TP-LINK EAP120
@@ -209,7 +183,7 @@ $(Device/tplink-8mlzma)
   DEVICE_TITLE := TP-LINK TL-WDR6500v2
   DEVICE_PACKAGES := kmod-usb-core kmod-usb2 kmod-usb-ledtrig-usbport kmod-ath10k ath10k-firmware-qca988x
   KERNEL := kernel-bin | patch-cmdline | lzma | uImage lzma
-  KERNEL_INITRAMFS := kernel-bin | patch-cmdline | lzma | uImage lzma | mktplinkfw-combined
+  KERNEL_INITRAMFS := kernel-bin | patch-cmdline | lzma | uImage lzma | mktplinkfw-initramfs
   BOARDNAME = TL-WDR6500-v2
   DEVICE_PROFILE = TLWDR6500V2
   TPLINK_HWID := 0x65000002
@@ -794,24 +768,7 @@ define Device/tl-wr1043nd-v3
     DEVICE_PROFILE := TLWR1043
     TPLINK_HWID := 0x10430003
 endef
-
-define Device/tl-wr1043nd-v4
-    $(Device/tplink)
-    DEVICE_TITLE := TP-LINK TL-WR1043N/ND v4
-    DEVICE_PACKAGES := kmod-usb-core kmod-usb2 kmod-usb-ledtrig-usbport
-    BOARDNAME := TL-WR1043ND-v4
-    DEVICE_PROFILE := TLWR1043
-    TPLINK_HWID :=  0x10430004
-    TPLINK_FLASHLAYOUT := 16Msafeloader
-    MTDPARTS := spi0.0:128k(u-boot)ro,1536k(kernel),14016k(rootfs),128k(product-info)ro,320k(config)ro,64k(partition-table)ro,128k(logs)ro,64k(ART)ro,15552k@0x20000(firmware)
-    IMAGE_SIZE := 15552k
-    TPLINK_BOARD_NAME := TLWR1043NDV4
-    KERNEL := kernel-bin | patch-cmdline | lzma | mktplinkfw-combined
-    IMAGES := sysupgrade.bin factory.bin
-    IMAGE/sysupgrade.bin := append-rootfs | tplink-safeloader sysupgrade
-    IMAGE/factory.bin := append-rootfs | tplink-safeloader factory
-endef
-TARGET_DEVICES += tl-wr1043nd-v1 tl-wr1043nd-v2 tl-wr1043nd-v3 tl-wr1043nd-v4
+TARGET_DEVICES += tl-wr1043nd-v1 tl-wr1043nd-v2 tl-wr1043nd-v3
 
 define Device/tl-wr2543-v1
     $(Device/tplink-8mlzma)

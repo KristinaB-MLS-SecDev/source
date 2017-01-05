@@ -25,7 +25,7 @@ gre_generic_setup() {
 	json_add_string mode "$mode"
 	json_add_int mtu "${mtu:-1280}"
 	[ -n "$df" ] && json_add_boolean df "$df"
-	[ -n "ttl" ] && json_add_int ttl "$ttl"
+	json_add_int ttl "${ttl:-64}"
 	[ -n "$tos" ] && json_add_string tos "$tos"
 	json_add_boolean multicast "$multicast"
 	json_add_string local "$local"
@@ -84,14 +84,7 @@ gre_setup() {
 
 	[ -z "$df" ] && df="1"
 
-	case "$mode" in
-		gretapip)
-			gre_generic_setup $cfg $mode $ipaddr $peeraddr "gre4t-$cfg"
-			;;
-		*)
-			gre_generic_setup $cfg $mode $ipaddr $peeraddr "gre4-$cfg"
-			;;
-	esac
+	gre_generic_setup $cfg $mode $ipaddr $peeraddr "gre-$cfg"
 }
 
 proto_gre_setup() {
@@ -109,7 +102,7 @@ proto_gretap_setup() {
 	gre_setup $cfg "gretapip"
 
 	json_init
-	json_add_string name "gre4t-$cfg"
+	json_add_string name "gre-$cfg"
 	json_add_boolean link-ext 0
 	json_close_object
 
@@ -162,14 +155,7 @@ grev6_setup() {
 		fi
 	}
 
-	case "$mode" in
-		gretapip6)
-			gre_generic_setup $cfg $mode $ip6addr $peer6addr "gre6t-$cfg"
-			;;
-		*)
-			gre_generic_setup $cfg $mode $ip6addr $peer6addr "gre6-$cfg"
-			;;
-	esac
+	gre_generic_setup $cfg $mode $ip6addr $peer6addr "grev6-$cfg"
 }
 
 proto_grev6_setup() {
@@ -187,7 +173,7 @@ proto_grev6tap_setup() {
 	grev6_setup $cfg "gretapip6"
 
 	json_init
-	json_add_string name "gre6t-$cfg"
+	json_add_string name "grev6-$cfg"
 	json_add_boolean link-ext 0
 	json_close_object
 
@@ -217,7 +203,7 @@ proto_gre_teardown() {
 proto_gretap_teardown() {
 	local cfg="$1"
 
-	gretap_generic_teardown "gre4t-$cfg"
+	gretap_generic_teardown "gre-$cfg"
 }
 
 proto_grev6_teardown() {
@@ -227,7 +213,7 @@ proto_grev6_teardown() {
 proto_grev6tap_teardown() {
 	local cfg="$1"
 
-	gretap_generic_teardown "gre6t-$cfg"
+	gretap_generic_teardown "grev6-$cfg"
 }
 
 gre_generic_init_config() {

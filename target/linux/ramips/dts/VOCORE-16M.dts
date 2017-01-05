@@ -2,10 +2,6 @@
 
 #include "VOCORE.dtsi"
 
-/ {
-	model = "VoCore (16M)";
-};
-
 &spi0 {
 	status = "okay";
 

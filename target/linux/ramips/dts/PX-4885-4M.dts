@@ -2,10 +2,6 @@
 
 #include "PX-4885.dtsi"
 
-/ {
-	model = "7Links PX-4885 (4M)";
-};
-
 &spi0 {
 	status = "okay";
 

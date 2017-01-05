@@ -4,7 +4,10 @@ comment "SSL support"
 
 choice
 	prompt "Selected SSL library"
-	default LIBCURL_MBEDTLS
+	default LIBCURL_POLARSSL
+
+	config LIBCURL_POLARSSL
+		bool "PolarSSL"
 
 	config LIBCURL_MBEDTLS
 		bool "mbed TLS"

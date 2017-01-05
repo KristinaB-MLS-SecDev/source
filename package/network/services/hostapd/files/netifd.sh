@@ -36,14 +36,6 @@ hostapd_append_wep_key() {
 	esac
 }
 
-hostapd_append_wpa_key_mgmt() {
-	local auth_type="$(echo $auth_type | tr 'a-z' 'A-Z')"
-
-	append wpa_key_mgmt "WPA-$auth_type"
-	[ "$ieee80211r" -gt 0 ] && append wpa_key_mgmt "FT-${auth_type}"
-	[ "$ieee80211w" -gt 0 ] && append wpa_key_mgmt "WPA-${auth_type}-SHA256"
-}
-
 hostapd_add_log_config() {
 	config_add_boolean \
 		log_80211 \
@@ -195,7 +187,7 @@ hostapd_set_bss_options() {
 		wps_device_type wps_device_name wps_manufacturer wps_pin \
 		macfilter ssid wmm uapsd hidden short_preamble rsn_preauth \
 		iapp_interface eapol_version acct_server acct_secret acct_port \
-		dynamic_vlan ieee80211w
+		dynamic_vlan
 
 	set_default isolate 0
 	set_default maxassoc 0
@@ -264,6 +256,7 @@ hostapd_set_bss_options() {
 			[ "$eapol_version" -ge "1" -a "$eapol_version" -le "2" ] && append bss_conf "eapol_version=$eapol_version" "$N"
 
 			wps_possible=1
+			append wpa_key_mgmt "WPA-PSK"
 		;;
 		eap)
 			json_get_vars \
@@ -298,6 +291,7 @@ hostapd_set_bss_options() {
 			[ -n "$ownip" ] && append bss_conf "own_ip_addr=$ownip" "$N"
 			append bss_conf "eapol_key_index_workaround=1" "$N"
 			append bss_conf "ieee8021x=1" "$N"
+			append wpa_key_mgmt "WPA-EAP"
 
 			[ "$eapol_version" -ge "1" -a "$eapol_version" -le "2" ] && append bss_conf "eapol_version=$eapol_version" "$N"
 		;;
@@ -382,9 +376,11 @@ hostapd_set_bss_options() {
 			for kh in $r1kh; do
 				append bss_conf "r1kh=${kh//,/ }" "$N"
 			done
+
+			[ "$wpa_key_mgmt" != "${wpa_key_mgmt/EAP/}" ] && append wpa_key_mgmt "FT-EAP"
+			[ "$wpa_key_mgmt" != "${wpa_key_mgmt/PSK/}" ] && append wpa_key_mgmt "FT-PSK"
 		fi
 
-		hostapd_append_wpa_key_mgmt
 		[ -n "$wpa_key_mgmt" ] && append bss_conf "wpa_key_mgmt=$wpa_key_mgmt" "$N"
 	fi
 
@@ -401,6 +397,7 @@ hostapd_set_bss_options() {
 		[ "$auth_cache" = 0 ] && append bss_conf "disable_pmksa_caching=1" "$N"
 
 		# RSN -> allow management frame protection
+		json_get_var ieee80211w ieee80211w
 		case "$ieee80211w" in
 			[012])
 				json_get_vars ieee80211w_max_timeout ieee80211w_retry_timeout
@@ -576,8 +573,11 @@ wpa_supplicant_add_network() {
 	local network_data=
 	local T="	"
 
+	local wpa_key_mgmt="WPA-PSK"
 	local scan_ssid="scan_ssid=1"
-	local freq wpa_key_mgmt
+	local freq
+
+	[ "$ieee80211r" -gt 0 ] && wpa_key_mgmt="FT-PSK $wpa_key_mgmt"
 
 	[[ "$_w_mode" = "adhoc" ]] && {
 		append network_data "mode=1" "$N$T"
@@ -589,7 +589,7 @@ wpa_supplicant_add_network() {
 
 		scan_ssid="scan_ssid=0"
 
-		[ "$_w_driver" = "nl80211" ] ||	append wpa_key_mgmt "WPA-NONE"
+		[ "$_w_driver" = "nl80211" ] ||	wpa_key_mgmt="WPA-NONE"
 	}
 
 	[[ "$_w_mode" = "mesh" ]] && {
@@ -601,7 +601,7 @@ wpa_supplicant_add_network() {
 			freq="$(get_freq "$phy" "$channel")"
 			append network_data "frequency=$freq" "$N$T"
 		}
-		append wpa_key_mgmt "SAE"
+		wpa_key_mgmt="SAE"
 		scan_ssid=""
 	}
 
@@ -617,9 +617,7 @@ wpa_supplicant_add_network() {
 		psk)
 			local passphrase
 
-			hostapd_append_wpa_key_mgmt
 			key_mgmt="$wpa_key_mgmt"
-
 			if [ ${#key} -eq 64 ]; then
 				passphrase="psk=${key}"
 			else
@@ -628,8 +626,8 @@ wpa_supplicant_add_network() {
 			append network_data "$passphrase" "$N$T"
 		;;
 		eap)
-			hostapd_append_wpa_key_mgmt
-			key_mgmt="$wpa_key_mgmt"
+			key_mgmt='WPA-EAP'
+		        [ "$ieee80211r" -gt 0 ] && key_mgmt="FT-EAP $key_mgmt"
 
 			json_get_vars eap_type identity anonymous_identity ca_cert
 			[ -n "$ca_cert" ] && append network_data "ca_cert=\"$ca_cert\"" "$N$T"

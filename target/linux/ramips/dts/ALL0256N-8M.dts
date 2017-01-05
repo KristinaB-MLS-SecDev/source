@@ -6,7 +6,7 @@
 
 / {
 	compatible = "ALL0256N", "ralink,rt3050-soc";
-	model = "Allnet ALL0256N (8M)";
+	model = "Allnet ALL0256N";
 
 	gpio-leds {
 		compatible = "gpio-leds";

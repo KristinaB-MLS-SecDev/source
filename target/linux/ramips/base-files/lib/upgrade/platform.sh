@@ -43,6 +43,7 @@ platform_check_image() {
 	dir-300-b7|\
 	dir-320-b1|\
 	dir-600-b1|\
+	dir-600-b2|\
 	dir-615-d|\
 	dir-615-h1|\
 	dir-620-a1|\
@@ -70,8 +71,6 @@ platform_check_image() {
 	jhr-n805r|\
 	jhr-n825r|\
 	jhr-n926r|\
-	kn_rc|\
-	kn_rf|\
 	kng_rc|\
 	linkits7688|\
 	linkits7688d|\
@@ -203,8 +202,7 @@ platform_check_image() {
 		return 0
 		;;
 	c20i|\
-	c50|\
-	mr200)
+	c50)
 		[ "$magic" != "03000000" ] && {
 			echo "Invalid image type."
 			return 1

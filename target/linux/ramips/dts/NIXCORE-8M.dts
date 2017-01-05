@@ -2,10 +2,6 @@
 
 #include "NIXCORE.dtsi"
 
-/ {
-	model = "NixcoreX1 (8M)";
-};
-
 &spi0 {
 	status = "okay";
 

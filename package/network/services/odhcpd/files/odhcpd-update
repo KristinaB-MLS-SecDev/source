@@ -1,6 +1,8 @@
 #!/bin/sh
-# Make dnsmasq reread hostfile by sending SIGHUP signal
+# Make dnsmasq reread hostfile
 
-. $IPKG_INSTROOT/lib/functions/procd.sh
+pid=$(pidof dnsmasq)
 
-procd_send_signal dnsmasq
+for i in $pid; do
+	[ "$(readlink /proc/$i/exe)" = "/usr/sbin/dnsmasq" ] && kill -SIGHUP $i
+done

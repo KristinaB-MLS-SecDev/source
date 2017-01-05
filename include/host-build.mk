@@ -5,8 +5,6 @@
 # See /LICENSE for more information.
 #
 
-include $(INCLUDE_DIR)/download.mk
-
 HOST_BUILD_DIR ?= $(BUILD_DIR_HOST)/$(PKG_NAME)$(if $(PKG_VERSION),-$(PKG_VERSION))
 HOST_INSTALL_DIR ?= $(HOST_BUILD_DIR)/host-install
 HOST_BUILD_PARALLEL ?=
@@ -37,6 +35,7 @@ HOST_STAMP_INSTALLED:=$(HOST_BUILD_PREFIX)/stamp/.$(PKG_NAME)_installed
 
 override MAKEFLAGS=
 
+include $(INCLUDE_DIR)/download.mk
 include $(INCLUDE_DIR)/quilt.mk
 include $(INCLUDE_DIR)/autotools.mk
 
@@ -52,6 +51,11 @@ endif
 define Host/Prepare
   $(call Host/Prepare/Default)
 endef
+
+ifeq ($(HOST_OS),Darwin)
+  HOST_CFLAGS += -I/usr/local/opt/openssl/include
+  HOST_LDFLAGS += -L/usr/local/opt/openssl/lib
+endif
 
 HOST_CONFIGURE_VARS = \
 	CC="$(HOSTCC)" \
@@ -132,8 +136,9 @@ Host/Exports=$(Host/Exports/Default)
 .NOTPARALLEL:
 
 ifndef DUMP
-  define HostBuild/Core
+  define HostBuild
   $(if $(HOST_QUILT),$(Host/Quilt))
+  $(if $(if $(PKG_HOST_ONLY),,$(STAMP_PREPARED)),,$(if $(strip $(PKG_SOURCE_URL)),$(call Download,default)))
   $(if $(DUMP),,$(call HostHost/Autoclean))
 
   $(HOST_STAMP_PREPARED):
@@ -193,8 +198,3 @@ ifndef DUMP
   clean:
 
 endif
-
-define HostBuild
-  $(HostBuild/Core)
-  $(if $(if $(PKG_HOST_ONLY),,$(STAMP_PREPARED)),,$(if $(strip $(PKG_SOURCE_URL)),$(call Download,default)))
-endef

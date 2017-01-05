@@ -14,7 +14,7 @@ platform_check_image() {
 		}
 		return 0
 		;;
-	*)
+	"dockstar")
 		nand_do_platform_check $board $1
 		return $?
 		;;
@@ -32,9 +32,6 @@ platform_do_upgrade() {
 	"linksys-viper")
 		platform_do_upgrade_linksys "$ARGV"
 		;;
-	*)
-		default_do_upgrade "$@"
-		;;
 	esac
 }
 
@@ -42,9 +39,7 @@ platform_pre_upgrade() {
 	local board=$(kirkwood_board_name)
 
 	case "$board" in
-	"linksys-audi"|\
-	"linksys-viper") ;;
-	*)
+	"dockstar")
 		nand_do_upgrade $1
 		;;
 	esac
